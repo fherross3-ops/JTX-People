@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zoho People - con Firebase</title>
+    <title>Zoho People - con Firebase y Dashboard Completo</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -394,6 +394,14 @@
             .overview-cards { grid-template-columns: 1fr; }
             .grid-2, .grid-3 { grid-template-columns: 1fr; }
             .header-search { display: none; }
+            .content-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .page-actions { width: 100%; }
+            .btn { width: 100%; margin-bottom: 8px; justify-content: center; }
+        }
+        @media (max-width: 480px) {
+            .overview-card { padding: 16px; }
+            .card-value { font-size: 24px; }
+            .zoho-header { padding: 0 12px; }
         }
     </style>
 </head>
@@ -431,12 +439,24 @@
         let currentPage = 'dashboard';
 
         // =============================
-        // FUNCIONES DE RENDERIZADO
+        // FUNCIONES DE CARGA
         // =============================
+        async function loadEmployees() {
+            const snapshot = await getDocs(collection(db, "employees"));
+            return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        }
 
+        async function loadLeaves() {
+            const snapshot = await getDocs(collection(db, "leaves"));
+            return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        }
+
+        // =============================
+        // DASHBOARD COMPLETO
+        // =============================
         async function renderDashboard() {
-            const employees = await getDocs(collection(db, "employees")).then(snap => snap.docs.map(d => ({ id: d.id, ...d.data() })));
-            const leaves = await getDocs(collection(db, "leaves")).then(snap => snap.docs.map(d => ({ id: d.id, ...d.data() })));
+            const employees = await loadEmployees();
+            const leaves = await loadLeaves();
             const user = ZohoAuth.getCurrentUser();
 
             const stats = {
@@ -447,50 +467,277 @@
             };
 
             document.getElementById('app-container').innerHTML = `
+                <!-- HEADER -->
                 <header class="zoho-header">
-                    <div class="zoho-logo" onclick="window.navigateTo('dashboard')">
+                    <div class="zoho-logo" onclick="navigateTo('dashboard')">
                         <i class="fas fa-users"></i>
                         <span>Zoho People</span>
                     </div>
+                    <div class="header-search">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" class="search-input" placeholder="Buscar empleados, formularios, reportes...">
+                    </div>
                     <div class="header-actions">
-                        <div class="user-avatar">${user.initial}</div>
+                        <button class="icon-btn" onclick="navigateTo('reports')">
+                            <i class="fas fa-chart-bar"></i>
+                        </button>
+                        <button class="icon-btn" onclick="navigateTo('settings')">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                        <button class="icon-btn" onclick="alert('Tienes 3 notificaciones nuevas')">
+                            <i class="fas fa-bell"></i>
+                            <span class="notification-badge">3</span>
+                        </button>
+                        <div class="user-avatar" onclick="navigateTo('profile')">
+                            ${user.initial}
+                        </div>
                     </div>
                 </header>
+
+                <!-- LAYOUT PRINCIPAL -->
                 <div class="main-container">
+                    <!-- SIDEBAR -->
                     <nav class="zoho-sidebar">
                         <div class="sidebar-section">
                             <div class="section-title">MiEspacio</div>
                             <ul class="sidebar-nav">
-                                <li class="nav-item"><a class="nav-link" onclick="window.navigateTo('dashboard')"><i class="fas fa-home"></i> Dashboard</a></li>
-                                <li class="nav-item"><a class="nav-link" onclick="window.navigateTo('profile')"><i class="fas fa-user"></i> Perfil</a></li>
+                                <li class="nav-item">
+                                    <a class="nav-link active" data-page="dashboard" onclick="navigateTo('dashboard')">
+                                        <i class="fas fa-home"></i>
+                                        <span>Resumen & Archivos</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" data-page="profile" onclick="navigateTo('profile')">
+                                        <i class="fas fa-user"></i>
+                                        <span>Mi Perfil</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" data-page="attendance" onclick="navigateTo('attendance')">
+                                        <i class="fas fa-calendar-check"></i>
+                                        <span>Mi Asistencia</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" data-page="leaves" onclick="navigateTo('leaves')">
+                                        <i class="fas fa-umbrella-beach"></i>
+                                        <span>Mis Ausencias</span>
+                                    </a>
+                                </li>
                             </ul>
                         </div>
                         <div class="sidebar-section">
                             <div class="section-title">Espacio de Trabajo</div>
                             <ul class="sidebar-nav">
-                                <li class="nav-item"><a class="nav-link" onclick="window.navigateTo('employees')"><i class="fas fa-users"></i> Empleados</a></li>
-                                <li class="nav-item"><a class="nav-link" onclick="window.navigateTo('forms')"><i class="fas fa-file-alt"></i> Formularios</a></li>
+                                <li class="nav-item">
+                                    <a class="nav-link" data-page="employees" onclick="navigateTo('employees')">
+                                        <i class="fas fa-users"></i>
+                                        <span>Empleados</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" data-page="attendance" onclick="navigateTo('attendance')">
+                                        <i class="fas fa-calendar-alt"></i>
+                                        <span>Asistencia</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" data-page="leaves" onclick="navigateTo('leaves')">
+                                        <i class="fas fa-calendar-minus"></i>
+                                        <span>Ausencias</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" data-page="forms" onclick="navigateTo('forms')">
+                                        <i class="fas fa-file-alt"></i>
+                                        <span>Formularios</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" data-page="reports" onclick="navigateTo('reports')">
+                                        <i class="fas fa-chart-pie"></i>
+                                        <span>Reportes</span>
+                                    </a>
+                                </li>
                             </ul>
                         </div>
+                        <div class="sidebar-section">
+                            <div class="section-title">Acciones Rápidas</div>
+                            <div class="quick-links">
+                                <div class="quick-link" onclick="addNewEmployee()">
+                                    <i class="fas fa-user-plus"></i>
+                                    <div>Nuevo Empleado</div>
+                                </div>
+                                <div class="quick-link" onclick="navigateTo('forms')">
+                                    <i class="fas fa-file-upload"></i>
+                                    <div>Subir Formulario</div>
+                                </div>
+                                <div class="quick-link" onclick="ZohoAuth.logout()" style="color: #F44336;">
+                                    <i class="fas fa-sign-out-alt"></i>
+                                    <div>Cerrar Sesión</div>
+                                </div>
+                                <div class="quick-link" onclick="navigateTo('settings')">
+                                    <i class="fas fa-cogs"></i>
+                                    <div>Configuración</div>
+                                </div>
+                            </div>
+                        </div>
                     </nav>
+
+                    <!-- CONTENIDO PRINCIPAL -->
                     <main class="main-content">
                         <div class="content-header">
-                            <h1 class="page-title">Resumen</h1>
+                            <h1 class="page-title">Resumen & Archivos</h1>
+                            <div class="page-actions">
+                                <button class="btn" onclick="exportData()">
+                                    <i class="fas fa-download"></i>
+                                    Exportar Datos
+                                </button>
+                                <button class="btn btn-primary" onclick="addNewEmployee()">
+                                    <i class="fas fa-plus"></i>
+                                    Nuevo Empleado
+                                </button>
+                            </div>
                         </div>
+
+                        <!-- TARJETAS DE ESTADÍSTICAS -->
                         <div class="overview-cards">
                             <div class="overview-card">
                                 <div class="card-header">
-                                    <h3 class="card-title">Empleados</h3>
-                                    <div class="card-icon blue"><i class="fas fa-users"></i></div>
+                                    <h3 class="card-title">Total de Empleados</h3>
+                                    <div class="card-icon blue">
+                                        <i class="fas fa-users"></i>
+                                    </div>
                                 </div>
                                 <div class="card-value">${stats.totalEmployees}</div>
+                                <div class="card-change">+2 este mes</div>
                             </div>
                             <div class="overview-card">
                                 <div class="card-header">
-                                    <h3 class="card-title">Activos</h3>
-                                    <div class="card-icon green"><i class="fas fa-user-check"></i></div>
+                                    <h3 class="card-title">Empleados Activos</h3>
+                                    <div class="card-icon green">
+                                        <i class="fas fa-user-check"></i>
+                                    </div>
                                 </div>
                                 <div class="card-value">${stats.activeEmployees}</div>
+                                <div class="card-change">94% de tasa de actividad</div>
+                            </div>
+                            <div class="overview-card">
+                                <div class="card-header">
+                                    <h3 class="card-title">Departamentos</h3>
+                                    <div class="card-icon orange">
+                                        <i class="fas fa-building"></i>
+                                    </div>
+                                </div>
+                                <div class="card-value">${stats.departments}</div>
+                                <div class="card-change">6 equipos activos</div>
+                            </div>
+                            <div class="overview-card">
+                                <div class="card-header">
+                                    <h3 class="card-title">Ausencias Pendientes</h3>
+                                    <div class="card-icon purple">
+                                        <i class="fas fa-umbrella-beach"></i>
+                                    </div>
+                                </div>
+                                <div class="card-value">${stats.pendingLeaves}</div>
+                                <div class="card-change">Por revisar</div>
+                            </div>
+                        </div>
+
+                        <!-- GRID DE CONTENIDO -->
+                        <div class="grid-2">
+                            <!-- EMPLEADOS RECIENTES -->
+                            <div class="card">
+                                <h3 class="section-title-large">Empleados Recientes</h3>
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Nombre</th>
+                                            <th>Departamento</th>
+                                            <th>Puesto</th>
+                                            <th>Estado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${employees.slice(0, 5).map(emp => `
+                                            <tr onclick="viewEmployee('${emp.id}')" style="cursor: pointer;">
+                                                <td><strong>${emp.name}</strong></td>
+                                                <td>${emp.department}</td>
+                                                <td>${emp.position}</td>
+                                                <td><span class="badge ${emp.status === 'active' ? 'badge-success' : 'badge-danger'}">${emp.status === 'active' ? 'Activo' : 'Inactivo'}</span></td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                                <button class="btn" onclick="navigateTo('employees')" style="margin-top: 16px; width: 100%;">
+                                    Ver Todos los Empleados
+                                </button>
+                            </div>
+
+                            <!-- AUSENCIAS PENDIENTES -->
+                            <div class="card">
+                                <h3 class="section-title-large">Ausencias Pendientes</h3>
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Empleado</th>
+                                            <th>Tipo</th>
+                                            <th>Fecha</th>
+                                            <th>Estado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${leaves.filter(l => l.status === 'pending').map(leave => `
+                                            <tr>
+                                                <td>${leave.employee}</td>
+                                                <td>${leave.type}</td>
+                                                <td>${leave.startDate}</td>
+                                                <td><span class="badge badge-warning">Pendiente</span></td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                                <button class="btn btn-primary" onclick="navigateTo('leaves')" style="margin-top: 16px; width: 100%;">
+                                    <i class="fas fa-check-circle"></i> Revisar Ausencias
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- ACTIVIDAD RECIENTE -->
+                        <div class="card">
+                            <h3 class="section-title-large">Actividad Reciente</h3>
+                            <div style="padding: 20px;">
+                                <div style="display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid #F0F0F0;">
+                                    <div style="width: 40px; height: 40px; background: #E8F0FE; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
+                                        <i class="fas fa-user-plus" style="color: #2C5AA0;"></i>
+                                    </div>
+                                    <div>
+                                        <div><strong>Nuevo empleado registrado</strong></div>
+                                        <div style="font-size: 12px; color: #666;">Valeria Castro se unió al equipo de Ventas</div>
+                                    </div>
+                                    <div style="margin-left: auto; font-size: 12px; color: #666;">Hoy, 10:30 AM</div>
+                                </div>
+                                <div style="display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid #F0F0F0;">
+                                    <div style="width: 40px; height: 40px; background: #E8F5E9; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
+                                        <i class="fas fa-calendar-check" style="color: #4CAF50;"></i>
+                                    </div>
+                                    <div>
+                                        <div><strong>Asistencia del mes completada</strong></div>
+                                        <div style="font-size: 12px; color: #666;">Reporte de asistencia de noviembre generado</div>
+                                    </div>
+                                    <div style="margin-left: auto; font-size: 12px; color: #666;">Ayer, 4:45 PM</div>
+                                </div>
+                                <div style="display: flex; align-items: center; padding: 12px 0;">
+                                    <div style="width: 40px; height: 40px; background: #FFF3E0; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
+                                        <i class="fas fa-file-alt" style="color: #FF9800;"></i>
+                                    </div>
+                                    <div>
+                                        <div><strong>Nuevo formulario publicado</strong></div>
+                                        <div style="font-size: 12px; color: #666;">"Evaluación de Desempeño Q4" disponible</div>
+                                    </div>
+                                    <div style="margin-left: auto; font-size: 12px; color: #666;">15 Nov, 2024</div>
+                                </div>
                             </div>
                         </div>
                     </main>
@@ -498,11 +745,19 @@
             `;
         }
 
+        // === FUNCIONES DE PÁGINAS BÁSICAS (solo placeholder) ===
+        function renderProfile() { document.getElementById('app-container').innerHTML = '<div style="padding:24px;"><h2>Mi Perfil</h2><p>En desarrollo.</p></div>'; }
+        function renderAttendance() { document.getElementById('app-container').innerHTML = '<div style="padding:24px;"><h2>Asistencia</h2></div>'; }
+        function renderLeaves() { document.getElementById('app-container').innerHTML = '<div style="padding:24px;"><h2>Ausencias</h2></div>'; }
+        function renderReports() { document.getElementById('app-container').innerHTML = '<div style="padding:24px;"><h2>Reportes</h2></div>'; }
+        function renderSettings() { document.getElementById('app-container').innerHTML = '<div style="padding:24px;"><h2>Configuración</h2></div>'; }
+
+        // === EMPLEADOS ===
         async function renderEmployees() {
-            const employees = await getDocs(collection(db, "employees")).then(snap => snap.docs.map(d => ({ id: d.id, ...d.data() })));
+            const employees = await loadEmployees();
             document.getElementById('app-container').innerHTML = `
                 <header class="zoho-header">
-                    <div class="zoho-logo" onclick="window.navigateTo('dashboard')">
+                    <div class="zoho-logo" onclick="navigateTo('dashboard')">
                         <i class="fas fa-users"></i> <span>Zoho People</span>
                     </div>
                     <div class="header-actions">
@@ -529,6 +784,24 @@
             `;
         }
 
+        async function addNewEmployee() {
+            const name = prompt("Nombre completo:");
+            const email = prompt("Correo:");
+            const department = prompt("Departamento:");
+            const position = prompt("Puesto:");
+            if (name && email && department && position) {
+                await addDoc(collection(db, "employees"), {
+                    name, email, department, position,
+                    status: 'active',
+                    salary: '$3,500',
+                    joinDate: new Date().toISOString().split('T')[0]
+                });
+                alert("✅ Empleado agregado");
+                navigateTo('employees');
+            }
+        }
+
+        // === FORMULARIOS ===
         function renderForms() {
             const forms = [
                 { id: 1, name: 'Solicitud de Vacaciones', department: 'Todos' },
@@ -538,7 +811,7 @@
             ];
             document.getElementById('app-container').innerHTML = `
                 <header class="zoho-header">
-                    <div class="zoho-logo" onclick="window.navigateTo('dashboard')">
+                    <div class="zoho-logo" onclick="navigateTo('dashboard')">
                         <i class="fas fa-file-alt"></i> <span>Formularios</span>
                     </div>
                     <div class="header-actions">
@@ -552,7 +825,7 @@
                         </div>
                         <div class="grid-2">
                             ${forms.map(form => `
-                                <div class="card" onclick="window.openForm(${form.id})" style="cursor:pointer;">
+                                <div class="card" onclick="openForm(${form.id})" style="cursor:pointer;">
                                     <h3>${form.name}</h3>
                                     <p>${form.department}</p>
                                 </div>
@@ -563,15 +836,12 @@
             `;
         }
 
-        // =============================
-        // FUNCIONES DE FORMULARIOS
-        // =============================
-
-        function renderVacationForm() {
+        // === FUNCIONES DE FORMULARIOS (igual que en index.txt) ===
+        async function renderVacationForm() {
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('app-container').innerHTML = `
                 <header class="zoho-header">
-                    <div class="zoho-logo" onclick="window.navigateTo('forms')">
+                    <div class="zoho-logo" onclick="navigateTo('forms')">
                         <i class="fas fa-umbrella-beach"></i> <span>Vacaciones</span>
                     </div>
                     <div class="header-actions">
@@ -591,7 +861,7 @@
                                     <label>Fecha Fin</label>
                                     <input type="date" id="vacEnd" class="form-control" min="${today}" required>
                                 </div>
-                                <button class="btn btn-primary" onclick="window.submitVacation()">Enviar</button>
+                                <button class="btn btn-primary" onclick="submitVacation()">Enviar</button>
                             </div>
                         </div>
                     </main>
@@ -612,14 +882,14 @@
                 submittedAt: new Date().toISOString()
             });
             alert("✅ Enviado");
-            window.navigateTo('forms');
+            navigateTo('forms');
         }
 
-        function renderExpenseReportForm() {
+        async function renderExpenseReportForm() {
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('app-container').innerHTML = `
                 <header class="zoho-header">
-                    <div class="zoho-logo" onclick="window.navigateTo('forms')">
+                    <div class="zoho-logo" onclick="navigateTo('forms')">
                         <i class="fas fa-file-invoice-dollar"></i> <span>Reporte de Gastos</span>
                     </div>
                     <div class="header-actions">
@@ -652,7 +922,7 @@
                                     <label>Monto ($)</label>
                                     <input type="number" id="expenseAmount" class="form-control" min="0" step="0.01" required>
                                 </div>
-                                <button class="btn btn-primary" onclick="window.submitExpenseReport()">Enviar</button>
+                                <button class="btn btn-primary" onclick="submitExpenseReport()">Enviar</button>
                             </div>
                         </div>
                     </main>
@@ -670,15 +940,15 @@
                 date, concept, category, amount: parseFloat(amount), status: 'pending'
             });
             alert("✅ Reporte enviado");
-            window.navigateTo('forms');
+            navigateTo('forms');
         }
 
         async function renderPerformanceReviewForm() {
-            const employees = await getDocs(collection(db, "employees")).then(snap => snap.docs.map(d => ({ id: d.id, ...d.data() })));
+            const employees = await loadEmployees();
             const activeEmployees = employees.filter(e => e.status === 'active');
             document.getElementById('app-container').innerHTML = `
                 <header class="zoho-header">
-                    <div class="zoho-logo" onclick="window.navigateTo('forms')">
+                    <div class="zoho-logo" onclick="navigateTo('forms')">
                         <i class="fas fa-chart-line"></i> <span>Evaluación</span>
                     </div>
                     <div class="header-actions">
@@ -706,7 +976,7 @@
                                     <label>Comentarios</label>
                                     <textarea id="reviewComments" class="form-control" rows="3"></textarea>
                                 </div>
-                                <button class="btn btn-primary" onclick="window.submitPerformanceReview()">Guardar</button>
+                                <button class="btn btn-primary" onclick="submitPerformanceReview()">Guardar</button>
                             </div>
                         </div>
                     </main>
@@ -728,13 +998,13 @@
                 submittedAt: new Date().toISOString()
             });
             alert("✅ Evaluación guardada");
-            window.navigateTo('forms');
+            navigateTo('forms');
         }
 
-        function renderEquipmentRequestForm() {
+        async function renderEquipmentRequestForm() {
             document.getElementById('app-container').innerHTML = `
                 <header class="zoho-header">
-                    <div class="zoho-logo" onclick="window.navigateTo('forms')">
+                    <div class="zoho-logo" onclick="navigateTo('forms')">
                         <i class="fas fa-laptop"></i> <span>Solicitud de Equipos</span>
                     </div>
                     <div class="header-actions">
@@ -765,7 +1035,7 @@
                                     <label>Justificación</label>
                                     <textarea id="equipJustification" class="form-control" rows="3" placeholder="..." required></textarea>
                                 </div>
-                                <button class="btn btn-primary" onclick="window.submitEquipmentRequest()">Enviar</button>
+                                <button class="btn btn-primary" onclick="submitEquipmentRequest()">Enviar</button>
                             </div>
                         </div>
                     </main>
@@ -785,69 +1055,57 @@
                 submittedAt: new Date().toISOString()
             });
             alert("✅ Solicitud enviada");
-            window.navigateTo('forms');
+            navigateTo('forms');
         }
 
-        // =============================
-        // FUNCIONES AUXILIARES
-        // =============================
-
-        async function addNewEmployee() {
-            const name = prompt("Nombre completo:");
-            const email = prompt("Correo:");
-            const department = prompt("Departamento:");
-            const position = prompt("Puesto:");
-            if (name && email && department && position) {
-                await addDoc(collection(db, "employees"), {
-                    name, email, department, position,
-                    status: 'active',
-                    salary: '$3,500',
-                    joinDate: new Date().toISOString().split('T')[0]
-                });
-                alert("✅ Empleado agregado");
-                window.navigateTo('employees');
-            }
+        // === FUNCIONES AUXILIARES ===
+        function exportData() {
+            alert("📊 Exportando datos desde Firebase...");
+        }
+        function viewEmployee(id) {
+            alert("👤 Detalles del empleado ID: " + id);
         }
 
-        // =============================
-        // NAVEGACIÓN
-        // =============================
+        // === NAVEGACIÓN ===
+        function openForm(id) {
+            if (id === 1) renderVacationForm();
+            else if (id === 2) renderExpenseReportForm();
+            else if (id === 3) renderPerformanceReviewForm();
+            else if (id === 4) renderEquipmentRequestForm();
+        }
+
+        function navigateTo(page) {
+            currentPage = page;
+            renderPage(page);
+        }
 
         function renderPage(page) {
             switch(page) {
                 case 'dashboard': renderDashboard(); break;
                 case 'employees': renderEmployees(); break;
                 case 'forms': renderForms(); break;
-                case 'profile': document.getElementById('app-container').innerHTML = '<div style="padding:24px;"><h2>Perfil</h2><p>Funcionalidad básica.</p></div>'; break;
-                case 'attendance': document.getElementById('app-container').innerHTML = '<div style="padding:24px;"><h2>Asistencia</h2></div>'; break;
-                case 'leaves': document.getElementById('app-container').innerHTML = '<div style="padding:24px;"><h2>Ausencias</h2></div>'; break;
-                case 'reports': document.getElementById('app-container').innerHTML = '<div style="padding:24px;"><h2>Reportes</h2></div>'; break;
-                case 'settings': document.getElementById('app-container').innerHTML = '<div style="padding:24px;"><h2>Configuración</h2></div>'; break;
+                case 'profile': renderProfile(); break;
+                case 'attendance': renderAttendance(); break;
+                case 'leaves': renderLeaves(); break;
+                case 'reports': renderReports(); break;
+                case 'settings': renderSettings(); break;
                 default: renderDashboard();
             }
         }
 
-        // Exponer funciones globales
-        window.navigateTo = function(page) {
-            currentPage = page;
-            renderPage(page);
-        };
-        window.openForm = function(id) {
-            if (id === 1) renderVacationForm();
-            else if (id === 2) renderExpenseReportForm();
-            else if (id === 3) renderPerformanceReviewForm();
-            else if (id === 4) renderEquipmentRequestForm();
-        };
+        // === INICIALIZACIÓN ===
+        document.addEventListener('DOMContentLoaded', () => {
+            renderPage('dashboard');
+        });
+
+        // === EXPOSICIÓN GLOBAL ===
+        window.navigateTo = navigateTo;
+        window.addNewEmployee = addNewEmployee;
+        window.openForm = openForm;
         window.submitVacation = submitVacation;
         window.submitExpenseReport = submitExpenseReport;
         window.submitPerformanceReview = submitPerformanceReview;
         window.submitEquipmentRequest = submitEquipmentRequest;
-        window.addNewEmployee = addNewEmployee;
-
-        // Inicialización
-        document.addEventListener('DOMContentLoaded', () => {
-            renderPage('dashboard');
-        });
     </script>
 </body>
 </html>
